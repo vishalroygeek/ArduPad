@@ -1,7 +1,8 @@
-import serial
 import keyboard
 import re
 import ctypes
+import asyncio
+import aioserial
 
 #Declaring constants and variables
 arduPadPort = None
@@ -31,14 +32,18 @@ def sendKeyStroke(command):
         else:
             ['' for _ in [keyboard.press_and_release("volume down")]*abs(reValue)]
 
-if __name__ == "__main__" :
-    #Actively listening for incoming data from the port & handling disconnections
+async def connectAndRead():
+    arduPadPort = aioserial.AioSerial(port=serialPortName, baudrate=serialPortBaudRate)
+
     while True:
-        try:
-            if arduPadPort is None:
-                arduPadPort = serial.Serial(port=serialPortName, baudrate=serialPortBaudRate)
-            elif arduPadPort.in_waiting > 0:
-                sendKeyStroke(re.sub(r'[\t \n \r]+', '', arduPadPort.readline().decode('ascii')))
-        except:
-            arduPadPort = None
+        try :
+            if arduPadPort.is_open:
+                data = await arduPadPort.readline_async()
+                sendKeyStroke(re.sub(r'[\t \n \r]+','', data.decode('ascii')))
+            else:
+                arduPadPort = aioserial.AioSerial(port=serialPortName, baudrate=serialPortBaudRate)
+        except :
             pass
+
+if __name__ == "__main__" :
+    asyncio.run(connectAndRead())
