@@ -37,12 +37,14 @@ async def connectAndRead():
 
     while True:
         try :
-            if arduPadPort.is_open:
+            if not arduPadPort is None:
                 data = await arduPadPort.readline_async()
                 sendKeyStroke(re.sub(r'[\t \n \r]+','', data.decode('ascii')))
             else:
                 arduPadPort = aioserial.AioSerial(port=serialPortName, baudrate=serialPortBaudRate)
-        except :
+        except Exception as e:
+            print(e)
+            arduPadPort = None
             pass
 
 if __name__ == "__main__" :
