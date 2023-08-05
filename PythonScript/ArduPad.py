@@ -33,8 +33,6 @@ def sendKeyStroke(command):
             ['' for _ in [keyboard.press_and_release("volume down")]*abs(reValue)]
 
 async def connectAndRead():
-    arduPadPort = aioserial.AioSerial(port=serialPortName, baudrate=serialPortBaudRate)
-
     while True:
         try :
             if not arduPadPort is None:
