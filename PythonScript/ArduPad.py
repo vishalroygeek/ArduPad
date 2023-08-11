@@ -3,6 +3,7 @@ import re
 import ctypes
 import asyncio
 import aioserial
+import serial.tools.list_ports
 
 #Declaring constants and variables
 arduPadPort = None
@@ -32,18 +33,26 @@ def sendKeyStroke(command):
         else:
             ['' for _ in [keyboard.press_and_release("volume down")]*abs(reValue)]
 
-async def connectAndRead():
-    while True:
-        try :
-            if not arduPadPort is None:
-                data = await arduPadPort.readline_async()
-                sendKeyStroke(re.sub(r'[\t \n \r]+','', data.decode('ascii')))
-            else:
-                arduPadPort = aioserial.AioSerial(port=serialPortName, baudrate=serialPortBaudRate)
-        except Exception as e:
-            print(e)
-            arduPadPort = None
-            pass
+def deviceAvailable():
+    return any([c.device==serialPortName for c in list(serial.tools.list_ports.comports())])
 
+async def connectAndRead():
+    global arduPadPort
+
+    while True:
+        if deviceAvailable():
+            try:
+                if arduPadPort.is_open:
+                    data = await arduPadPort.readline_async()
+                    sendKeyStroke(re.sub(r'[\t \n \r]+','', data.decode('ascii')))
+                elif deviceAvailable():
+                    arduPadPort = aioserial.AioSerial(port=serialPortName, baudrate=serialPortBaudRate)
+                    print("Connected")
+            except:
+                arduPadPort.close()
+                deviceAvailable()
+                if not deviceAvailable():
+                    print("Disconnected")
+        
 if __name__ == "__main__" :
     asyncio.run(connectAndRead())
